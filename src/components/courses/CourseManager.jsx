@@ -3,12 +3,14 @@ import { Plus } from "lucide-react";
 import DataTable from "../ui/DataTable";
 import Modal from "../ui/Modal";
 import Form from "../ui/Form";
+import { useAuth } from "../../contexts/AuthContext";
 import { courseAPI } from "../../services/api";
 import { useFetch } from "../../hooks/useAPI";
 import { useTranslation } from "../../hooks/useTranslation";
 
 export const CourseManager = () => {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
   const [courses, setCourses] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
@@ -16,7 +18,7 @@ export const CourseManager = () => {
 
   useEffect(() => {
     if (data) {
-      setCourses(data);
+      setCourses(Array.isArray(data) ? [...data] : []);
     }
   }, [data]);
 
@@ -48,19 +50,34 @@ export const CourseManager = () => {
   const handleSubmit = async (formData) => {
     try {
       if (editingCourse) {
-        await courseAPI.update(editingCourse.id, formData);
+        const response = await courseAPI.update(editingCourse.id, formData);
         setCourses(
-          courses.map((c) => (c.id === editingCourse.id ? formData : c)),
+          courses.map((c) =>
+            c.id === editingCourse.id
+              ? response.data || { ...formData, id: editingCourse.id }
+              : c,
+          ),
         );
       } else {
         const response = await courseAPI.create(formData);
-        setCourses([...courses, response]);
+        setCourses([...courses, response.data || formData]);
       }
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error saving course:", error);
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="p-6 bg-white rounded-lg shadow-sm text-center">
+        <h2 className="text-xl font-semibold text-gray-900">
+          {t("accessDenied")}
+        </h2>
+        <p className="text-gray-600 mt-2">{t("adminOnly")}</p>
+      </div>
+    );
+  }
 
   const columns = [
     { key: "name", label: t("courseName") },

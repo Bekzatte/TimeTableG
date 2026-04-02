@@ -1,27 +1,59 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  Navigate,
+} from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import CoursesPage from "./pages/CoursesPage";
 import TeachersPage from "./pages/TeachersPage";
 import RoomsPage from "./pages/RoomsPage";
 import SchedulePage from "./pages/SchedulePage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import { useLanguage } from "./contexts/LanguageContext";
 import { useTranslation } from "./hooks/useTranslation";
+import { useAuth, ROLES } from "./contexts/AuthContext";
 import "./index.css";
+
+const RequireAuth = ({ children, allowedRoles = [] }) => {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return (
+      <div className="py-20 text-center text-red-600">
+        <p className="text-xl font-semibold mb-2">{"Доступ запрещён"}</p>
+        <p>{"У вас нет прав для просмотра этой страницы."}</p>
+      </div>
+    );
+  }
+
+  return children;
+};
 
 export default function App() {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
+  const { user, isAdmin, isTeacher, isStudent, logout } = useAuth();
 
   const navItems = [
     { label: t("home"), path: "/" },
-    { label: t("courses"), path: "/courses" },
-    { label: t("teachers"), path: "/teachers" },
-    { label: t("rooms"), path: "/rooms" },
     { label: t("schedule"), path: "/schedule" },
   ];
+
+  if (isAdmin) {
+    navItems.splice(1, 0, { label: t("courses"), path: "/courses" });
+    navItems.splice(2, 0, { label: t("teachers"), path: "/teachers" });
+    navItems.splice(3, 0, { label: t("rooms"), path: "/rooms" });
+  }
 
   const languages = [
     { code: "kk", name: "ҚАЗ" },
@@ -63,7 +95,7 @@ export default function App() {
             </div>
 
             {/* Right side controls */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
               {/* Language Selector - Desktop */}
               <div className="hidden sm:flex items-center gap-0.5 bg-white bg-opacity-10 rounded-xl p-0.5">
                 {languages.map((lang) => (
@@ -80,6 +112,36 @@ export default function App() {
                   </button>
                 ))}
               </div>
+
+              {/* Auth Buttons - Desktop */}
+              {user ? (
+                <div className="hidden sm:flex items-center gap-2">
+                  <span className="px-3 py-1.5 rounded-2xl border-[0.4px] border-white bg-[#014531] text-white text-[14px] whitespace-nowrap">
+                    {`${user.displayName} (${user.role})`}
+                  </span>
+                  <button
+                    onClick={logout}
+                    className="px-3 py-1.5 rounded-2xl bg-red-500 text-white text-[14px] whitespace-nowrap hover:scale-105 transition"
+                  >
+                    {t("logout")}
+                  </button>
+                </div>
+              ) : (
+                <div className="hidden sm:flex items-center gap-2">
+                  <Link
+                    to="/login"
+                    className="px-3 py-1.5 rounded-2xl border-[0.4px] border-white bg-[#014531] text-white text-[14px] whitespace-nowrap hover:scale-105 transition"
+                  >
+                    {t("login")}
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-3 py-1.5 rounded-2xl border-[0.4px] border-white bg-[#014531] text-white text-[14px] whitespace-nowrap hover:scale-105 transition"
+                  >
+                    {t("register")}
+                  </Link>
+                </div>
+              )}
 
               {/* Mobile menu button */}
               <button
@@ -125,6 +187,37 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+
+                <div className="pt-3 mt-3 border-t border-green-900 space-y-2">
+                  {user ? (
+                    <button
+                      onClick={() => {
+                        logout();
+                        setMenuOpen(false);
+                      }}
+                      className="w-full bg-red-600 text-white py-2 rounded-md"
+                    >
+                      {t("logout")}
+                    </button>
+                  ) : (
+                    <>
+                      <Link
+                        to="/login"
+                        onClick={() => setMenuOpen(false)}
+                        className="w-full inline-flex justify-center bg-[#014531] border border-white text-white py-2 rounded-md"
+                      >
+                        {t("login")}
+                      </Link>
+                      <Link
+                        to="/register"
+                        onClick={() => setMenuOpen(false)}
+                        className="w-full inline-flex justify-center bg-[#014531] border border-white text-white py-2 rounded-md"
+                      >
+                        {t("register")}
+                      </Link>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -133,11 +226,53 @@ export default function App() {
         {/* Main content */}
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/courses" element={<CoursesPage />} />
-            <Route path="/teachers" element={<TeachersPage />} />
-            <Route path="/rooms" element={<RoomsPage />} />
-            <Route path="/schedule" element={<SchedulePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route
+              path="/"
+              element={
+                <RequireAuth
+                  allowedRoles={[ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT]}
+                >
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/courses"
+              element={
+                <RequireAuth allowedRoles={[ROLES.ADMIN]}>
+                  <CoursesPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/teachers"
+              element={
+                <RequireAuth allowedRoles={[ROLES.ADMIN]}>
+                  <TeachersPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/rooms"
+              element={
+                <RequireAuth allowedRoles={[ROLES.ADMIN]}>
+                  <RoomsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/schedule"
+              element={
+                <RequireAuth
+                  allowedRoles={[ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT]}
+                >
+                  <SchedulePage />
+                </RequireAuth>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
 
@@ -146,7 +281,7 @@ export default function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-6">
               {/* About */}
-              <div>
+              <div className="text-center">
                 <h3 className="text-base sm:text-lg font-bold text-yellow-300 mb-2 sm:mb-3">
                   {t("title")}
                 </h3>
@@ -154,7 +289,7 @@ export default function App() {
               </div>
 
               {/* Quick Links */}
-              <div>
+              <div className="text-center">
                 <h3 className="text-base sm:text-lg font-bold text-yellow-300 mb-2 sm:mb-3">
                   {t("navigate")}
                 </h3>
@@ -187,14 +322,14 @@ export default function App() {
               </div>
 
               {/* Language Info */}
-              <div>
+              <div className="text-center">
                 <h3 className="text-base sm:text-lg font-bold text-yellow-300 mb-2 sm:mb-3">
                   {t("language")}
                 </h3>
                 <p className="text-sm sm:text-base mb-2 sm:mb-3 text-gray-200">
                   {languages.find((l) => l.code === language)?.name}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-center">
                   {languages.map((lang) => (
                     <button
                       key={lang.code}

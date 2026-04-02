@@ -39,7 +39,7 @@ export const TimetableGrid = ({ schedule = [], week = new Date() }) => {
 
   return (
     <div className="w-full overflow-x-auto border rounded-lg bg-white border-gray-200">
-      <table className="w-full border-collapse table-fixed">
+      <table className="w-full border-collapse table-auto md:table-fixed">
         <colgroup>
           <col style={{ width: "120px" }} />
           {days.map((_, i) => (

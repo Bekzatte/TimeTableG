@@ -1,10 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, Users, Home, Zap } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
 
 export const Dashboard = () => {
   const { t } = useTranslation();
+  const { isAdmin, isTeacher, isStudent } = useAuth();
 
   const features = [
     {
@@ -39,7 +41,7 @@ export const Dashboard = () => {
     },
     {
       title: t("scheduleMgmt"),
-      description: t("generateSchedule"),
+      description: isAdmin ? t("generateSchedule") : t("viewSchedule"),
       icon: Zap,
       link: "/schedule",
       bgClass: "from-orange-100 to-orange-50",

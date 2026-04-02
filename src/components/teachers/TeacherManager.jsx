@@ -3,12 +3,14 @@ import { Plus } from "lucide-react";
 import DataTable from "../ui/DataTable";
 import Modal from "../ui/Modal";
 import Form from "../ui/Form";
+import { useAuth } from "../../contexts/AuthContext";
 import { teacherAPI } from "../../services/api";
 import { useFetch } from "../../hooks/useAPI";
 import { useTranslation } from "../../hooks/useTranslation";
 
 export const TeacherManager = () => {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
   const [teachers, setTeachers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
@@ -16,7 +18,7 @@ export const TeacherManager = () => {
 
   useEffect(() => {
     if (data) {
-      setTeachers(data);
+      setTeachers(Array.isArray(data) ? [...data] : []);
     }
   }, [data]);
 
@@ -50,13 +52,17 @@ export const TeacherManager = () => {
   const handleSubmit = async (formData) => {
     try {
       if (editingTeacher) {
-        await teacherAPI.update(editingTeacher.id, formData);
+        const response = await teacherAPI.update(editingTeacher.id, formData);
         setTeachers(
-          teachers.map((t) => (t.id === editingTeacher.id ? formData : t)),
+          teachers.map((t) =>
+            t.id === editingTeacher.id
+              ? response.data || { ...formData, id: editingTeacher.id }
+              : t,
+          ),
         );
       } else {
         const response = await teacherAPI.create(formData);
-        setTeachers([...teachers, response]);
+        setTeachers([...teachers, response.data || formData]);
       }
       setIsModalOpen(false);
     } catch (error) {
@@ -70,6 +76,17 @@ export const TeacherManager = () => {
     { key: "phone", label: t("phone") },
     { key: "specialization", label: t("specialization") },
   ];
+
+  if (!isAdmin) {
+    return (
+      <div className="p-6 bg-white rounded-lg shadow-sm text-center">
+        <h2 className="text-xl font-semibold text-gray-900">
+          {t("accessDenied")}
+        </h2>
+        <p className="text-gray-600 mt-2">{t("adminOnly")}</p>
+      </div>
+    );
+  }
 
   const formFields = [
     {

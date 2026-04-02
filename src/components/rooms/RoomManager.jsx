@@ -3,12 +3,14 @@ import { Plus } from "lucide-react";
 import DataTable from "../ui/DataTable";
 import Modal from "../ui/Modal";
 import Form from "../ui/Form";
+import { useAuth } from "../../contexts/AuthContext";
 import { roomAPI } from "../../services/api";
 import { useFetch } from "../../hooks/useAPI";
 import { useTranslation } from "../../hooks/useTranslation";
 
 export const RoomManager = () => {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
@@ -16,7 +18,7 @@ export const RoomManager = () => {
 
   useEffect(() => {
     if (data) {
-      setRooms(data);
+      setRooms(Array.isArray(data) ? [...data] : []);
     }
   }, [data]);
 
@@ -50,17 +52,34 @@ export const RoomManager = () => {
   const handleSubmit = async (formData) => {
     try {
       if (editingRoom) {
-        await roomAPI.update(editingRoom.id, formData);
-        setRooms(rooms.map((r) => (r.id === editingRoom.id ? formData : r)));
+        const response = await roomAPI.update(editingRoom.id, formData);
+        setRooms(
+          rooms.map((r) =>
+            r.id === editingRoom.id
+              ? response.data || { ...formData, id: editingRoom.id }
+              : r,
+          ),
+        );
       } else {
         const response = await roomAPI.create(formData);
-        setRooms([...rooms, response]);
+        setRooms([...rooms, response.data || formData]);
       }
       setIsModalOpen(false);
     } catch (error) {
       console.error(t("errorSaveRoom"), error);
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="p-6 bg-white rounded-lg shadow-sm text-center">
+        <h2 className="text-xl font-semibold text-gray-900">
+          {t("accessDenied")}
+        </h2>
+        <p className="text-gray-600 mt-2">{t("adminOnly")}</p>
+      </div>
+    );
+  }
 
   const columns = [
     { key: "number", label: t("roomNumberHeader") },

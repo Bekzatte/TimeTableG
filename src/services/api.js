@@ -3,6 +3,7 @@ import {
   mockTeacherAPI,
   mockRoomAPI,
   mockScheduleAPI,
+  mockAuthAPI,
 } from "./mockData";
 
 /**
@@ -22,11 +23,15 @@ export const roomAPI = mockRoomAPI;
 // API endpoints для Timetable/Schedule
 export const scheduleAPI = mockScheduleAPI;
 
+// API endpoints для Authentication
+export const authAPI = mockAuthAPI;
+
 export default {
   courseAPI,
   teacherAPI,
   roomAPI,
   scheduleAPI,
+  authAPI,
 };
 
 /**

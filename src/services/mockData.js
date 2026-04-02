@@ -116,7 +116,7 @@ let mockRooms = [
 let mockSchedules = [
   {
     id: 1,
-    day: new Date(2024, 0, 8),
+    day: new Date(2026, 0, 8),
     start_hour: 8,
     end_hour: 9,
     course_id: 1,
@@ -130,7 +130,7 @@ let mockSchedules = [
   },
   {
     id: 2,
-    day: new Date(2024, 0, 8),
+    day: new Date(2026, 0, 8),
     start_hour: 10,
     end_hour: 11,
     course_id: 4,
@@ -156,7 +156,7 @@ export const mockCourseAPI = {
   getAll: async () => {
     // Имитация задержки сети
     await new Promise((resolve) => setTimeout(resolve, 300));
-    return { data: mockCourses };
+    return { data: [...mockCourses] };
   },
 
   create: async (data) => {
@@ -191,7 +191,7 @@ export const mockCourseAPI = {
 export const mockTeacherAPI = {
   getAll: async () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    return { data: mockTeachers };
+    return { data: [...mockTeachers] };
   },
 
   create: async (data) => {
@@ -226,7 +226,7 @@ export const mockTeacherAPI = {
 export const mockRoomAPI = {
   getAll: async () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    return { data: mockRooms };
+    return { data: [...mockRooms] };
   },
 
   create: async (data) => {
@@ -293,7 +293,7 @@ export const mockScheduleAPI = {
     await new Promise((resolve) => setTimeout(resolve, 500));
     // Генерируем тестовое расписание
     const generated = [];
-    const startDate = new Date(2024, 0, 8); // 8 января 2024
+    const startDate = new Date(2026, 0, 8); // 8 января 2026
 
     for (let day = 0; day < 5; day++) {
       for (let hour = 8; hour < 16; hour++) {
@@ -326,9 +326,90 @@ export const mockScheduleAPI = {
   },
 };
 
+/**
+ * Auth Mock API
+ * Имитация API для аутентификации
+ * В реальном приложении это будет подключено к бэкенду
+ */
+
+// Хранилище пользователей (имитация БД)
+let mockUsers = [
+  {
+    id: 1,
+    email: "admin@university.kz",
+    password: "admin123",
+    displayName: "Admin User",
+    role: "admin",
+  },
+  {
+    id: 2,
+    email: "teacher@university.kz",
+    password: "teacher123",
+    displayName: "Петр Иванович",
+    role: "teacher",
+  },
+  {
+    id: 3,
+    email: "student@university.kz",
+    password: "student123",
+    displayName: "Арман Касымов",
+    role: "student",
+  },
+];
+
+export const mockAuthAPI = {
+  login: async (email, password) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const user = mockUsers.find(
+      (u) => u.email === email && u.password === password,
+    );
+
+    if (!user) {
+      throw new Error("Неверный email или пароль");
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    return {
+      ...userWithoutPassword,
+      token: `token_${user.id}_${Date.now()}`,
+    };
+  },
+
+  register: async (email, password, displayName, role) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    if (mockUsers.some((u) => u.email === email)) {
+      throw new Error("Пользователь с таким email уже существует");
+    }
+
+    const newUser = {
+      id: mockUsers.length + 1,
+      email,
+      password,
+      displayName,
+      role,
+    };
+
+    mockUsers.push(newUser);
+
+    const { password: _, ...userWithoutPassword } = newUser;
+    return {
+      ...userWithoutPassword,
+      token: `token_${newUser.id}_${Date.now()}`,
+    };
+  },
+
+  logout: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return { success: true };
+  },
+};
+
 export default {
   mockCourseAPI,
   mockTeacherAPI,
   mockRoomAPI,
   mockScheduleAPI,
+  mockAuthAPI,
 };
