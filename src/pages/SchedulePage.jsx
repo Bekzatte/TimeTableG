@@ -1,0 +1,113 @@
+import React, { useState, useEffect } from "react";
+import { Plus, RotateCw } from "lucide-react";
+import TimetableGrid from "../components/timetable/TimetableGrid";
+import Modal from "../components/ui/Modal";
+import Form from "../components/ui/Form";
+import { scheduleAPI } from "../services/api";
+import { useFetch } from "../hooks/useAPI";
+import { useTranslation } from "../hooks/useTranslation";
+
+export const SchedulePage = () => {
+  const { t } = useTranslation();
+  const [schedule, setSchedule] = useState([]);
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const {
+    data,
+    isLoading: dataLoading,
+    execute,
+  } = useFetch(scheduleAPI.getAll);
+
+  useEffect(() => {
+    if (data) {
+      setSchedule(data);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    execute();
+  }, []);
+
+  const handleGenerateSchedule = async (formData, setErrors) => {
+    try {
+      setIsLoading(true);
+      const response = await scheduleAPI.generate(formData);
+      setSchedule(response);
+      setIsGenerateOpen(false);
+    } catch (error) {
+      console.error(t("errorGenerateSchedule"), error);
+      setErrors["error"] = error.message;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formFields = [
+    {
+      name: "semester",
+      label: t("semester"),
+      type: "number",
+      placeholder: "1",
+      required: true,
+    },
+    {
+      name: "year",
+      label: t("year"),
+      type: "number",
+      placeholder: "2024",
+      required: true,
+    },
+    {
+      name: "algorithm",
+      label: t("algorithm"),
+      type: "select",
+      options: [
+        { value: "greedy", label: t("greedyAlgorithm") },
+        { value: "genetic", label: t("geneticAlgorithm") },
+        { value: "simulated_annealing", label: t("simulatedAnnealing") },
+      ],
+    },
+  ];
+
+  return (
+    <div className="w-full px-6 py-6 sm:py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t("scheduleMgmt")}
+        </h1>
+        <button
+          onClick={() => setIsGenerateOpen(true)}
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
+        >
+          <RotateCw size={20} /> {t("generateNewSchedule")}
+        </button>
+      </div>
+
+      <div className="rounded-lg shadow-md p-6 bg-white">
+        {schedule.length > 0 ? (
+          <TimetableGrid schedule={schedule} />
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            <RotateCw size={48} className="mx-auto mb-4 opacity-50" />
+            <p>{t("scheduleNotCreated")}</p>
+          </div>
+        )}
+      </div>
+
+      <Modal
+        isOpen={isGenerateOpen}
+        onClose={() => setIsGenerateOpen(false)}
+        title={t("generateNewSchedule")}
+      >
+        <Form
+          fields={formFields}
+          onSubmit={handleGenerateSchedule}
+          submitText={t("generateSchedule")}
+          isLoading={isLoading}
+        />
+      </Modal>
+    </div>
+  );
+};
+
+export default SchedulePage;
