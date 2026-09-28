@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: timetableg
+      POSTGRES_USER: timetableg
+      POSTGRES_PASSWORD: timetableg
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timetableg -d timetableg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    command: python -m start
+    environment:
+      DATABASE_URL: postgresql://timetableg:timetableg@postgres:5432/timetableg
+      REDIS_URL: redis://redis:6379/0
+      SCHEDULE_GENERATION_EXECUTION_MODE: rq
+      SCHEDULE_RQ_QUEUE: schedule-generation
+      ALEMBIC_AUTO_UPGRADE: "true"
+      ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      EXPOSE_DEV_CLAIM_CODE: "true"
+      PORT: "8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import json, urllib.request; data=json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)); assert data['status'] == 'ok'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+    command: python -m schedule_rq_worker
+    environment:
+      DATABASE_URL: postgresql://timetableg:timetableg@postgres:5432/timetableg
+      REDIS_URL: redis://redis:6379/0
+      SCHEDULE_RQ_QUEUE: schedule-generation
+      ALEMBIC_AUTO_UPGRADE: "false"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      backend:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:8000/api
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  frontend_node_modules:

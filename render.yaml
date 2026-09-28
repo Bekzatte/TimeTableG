@@ -1,0 +1,72 @@
+services:
+  - type: keyvalue
+    name: timetableg-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+  - type: web
+    name: timetableg-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m start
+    envVars:
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SCHEDULE_GENERATION_EXECUTION_MODE
+        value: rq
+      - key: SCHEDULE_RUNNING_JOB_STALE_SECONDS
+        value: "1200"
+      - key: SCHEDULE_RQ_QUEUE
+        value: schedule-generation
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: timetableg-redis
+          property: connectionString
+      - key: CP_SAT_MAX_ROOM_CANDIDATES
+        value: "24"
+      - key: CP_SAT_WARM_START_ENABLED
+        value: "true"
+      - key: ALEMBIC_AUTO_UPGRADE
+        value: "true"
+      - key: SENTRY_DSN
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        sync: false
+
+  - type: worker
+    name: timetableg-schedule-worker
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m schedule_rq_worker
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: timetableg-redis
+          property: connectionString
+      - key: SCHEDULE_RQ_QUEUE
+        value: schedule-generation
+      - key: SCHEDULE_RQ_JOB_TIMEOUT_SECONDS
+        value: "1800"
+      - key: CP_SAT_MAX_ROOM_CANDIDATES
+        value: "24"
+      - key: CP_SAT_WARM_START_ENABLED
+        value: "true"
+      - key: ALEMBIC_AUTO_UPGRADE
+        value: "true"
+      - key: SENTRY_DSN
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        sync: false
+
+
+#Value: https://timetableg-backend-4xb8.onrender.com/api
+#VITE_API_URL

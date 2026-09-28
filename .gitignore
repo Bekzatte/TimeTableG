@@ -1,5 +1,44 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Python Virtual Environments & Caches
+.venv/
+**/.venv/
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+**/.pytest_cache/
+
+# Build and distribution
+dist/
+**/dist/
+dist-ssr/
+build/
+*.local
+test-results/
+playwright-report/
+
+# Databases and data
+backend/data/
+*.sqlite3
+*.db
+
+# Environment variables & secrets
+.env
+*.env
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+backend/.env
+frontend/.env
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,16 +46,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# OS and Editors
+.DS_Store
+**/.DS_Store
+.idea/
+**/.idea/
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
